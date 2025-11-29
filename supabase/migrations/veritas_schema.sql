@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS case_files (
   title text NOT NULL,
   description text DEFAULT '',
   status text DEFAULT 'draft',
+  social_media_platforms text[] DEFAULT '{}',
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );

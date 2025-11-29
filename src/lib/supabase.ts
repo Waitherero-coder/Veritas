@@ -23,6 +23,7 @@ export type CaseFile = {
   title: string;
   description: string;
   status: 'draft' | 'active' | 'submitted' | 'archived';
+  social_media_platforms: string[];
   created_at: string;
   updated_at: string;
 };
