@@ -1,11 +1,24 @@
-# Veritas – Automated Evidence & Justice Engine
+# 🛡️Veritas – Automated Evidence & Justice Engine🛡️
 
-**Veritas** is a web application designed to help survivors of online abuse turn messy evidence (screenshots, chats, files) into structured, court‑ready case files — and connect them to support resources (helplines, counseling, legal help).  
+**Veritas** (meaning 'truth') is a web application designed to help survivors of online abuse turn messy evidence (screenshots, chats, files) into structured, court‑ready case files — and connect them to support resources (helplines, counseling, legal help).  
 It aims to make digital justice and support accessible, especially for women and girls online.
 
 ---
 
-## 💡 Why Veritas
+## Table of Contents
+* [Why Veritas?](#why-veritas)
+* [Features](#features)
+* [Tech Stack](#tech-stack)
+* [Quick Setup](#quick-setup)
+* [How to use](#how-to-use)
+* [Live demo](#live-demo)
+* [Collaboration Instructions (for Team)](#collaboration-instructions-for-team)
+* [Acknowledgement](#acknowledgements)
+* [License](#license)
+
+---
+
+## 💡Why Veritas?
 
 Online abuse, harassment, doxxing, blackmail and other forms of digital violence are rapidly increasing — especially against women and girls. Survivors often don’t know where to start, don’t have the technical know‑how to organize evidence properly, or don’t know which resources to turn to for help.  
 
@@ -20,19 +33,19 @@ Veritas aims to solve this by offering:
 
 ---
 
-## ✅ Features (MVP & Planned)
+## ✅Features
 
-- Upload evidence files (images, documents, audio/video)  
-- Store evidence securely in storage and metadata in database  
-- Extract and analyze content (text extraction / OCR simulation + basic threat detection)  
-- Maintain “cases” — group evidence under case IDs  
-- SupportBridge: list of support resources (police, medical, counseling, legal)  
-- Anonymous / optional user mode (no sensitive user data required)  
-- Future plans: PDF export of case bundle, better OCR/AI analysis, encryption, user accounts & auth  
+- User Authentication: Secure signup and login using Supabase.  
+- Case Management: Create, update, and view cases efficiently.  
+- Case Detail View: Access detailed information on individual cases.  
+- Support Bridge: Real-time communication for assistance and guidance. 
+- Panic Button: Immediate alert system for urgent situations.  
+- Settings: Manage profile, preferences, and notifications.  
+- Responsive Design: Works seamlessly on desktop and mobile devices.  
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️Tech Stack
 
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS  
 - **Backend / Database**: Supabase (PostgreSQL + Storage + Auth)  
@@ -41,7 +54,7 @@ Veritas aims to solve this by offering:
 
 ---
 
-## 📥 Quick Setup (For Developers / Team Members)
+## 📥Quick Setup
 
 1. Clone the repo:  
    ```bash
@@ -57,43 +70,39 @@ Veritas aims to solve this by offering:
    VITE_SUPABASE_URL=https://<YOUR-PROJECT-REF>.supabase.co  
    VITE_SUPABASE_ANON_KEY=<YOUR_ANON_KEY>
    ```
-4. Make sure your Supabase project is ready:
-* Database tables created (via migrations)
-* Storage bucket created (e.g. evidence or evidence-files)
-* Row‑Level Security (RLS) policies set appropriately to allow access (for demo / development)
-
+4. Make sure your Supabase project is ready
 5. Start the dev server:
    ```bash
    npm run dev
    ```
 Then open http://localhost:5173 (or as indicated) in your browser.
 
-## 🎯 How to Use (Demo Flow)
-* Click “Upload Evidence”
-* Select a file (image, doc, video, etc.)
-* Submit → file is uploaded to storage, metadata saved, content analyzed (text extraction & threat detection)
-* Evidence appears in case file list / dashboard
-* Use SupportBridge / Helplines page to view support resources (police, hospitals, counseling)
-* (Optional) Repeat for multiple files under a single case to build a full evidence bundle
+## 🎯How to Use
+1. Launch the app.
+2. Open the app in your browser.
+3. Sign up or log in to your account. (Make sure you check your email for verification)
+4. Navigate to Cases to view existing cases or add a new case.
+5. Use the Support Bridge for communication or the Panic Button for urgent alerts.
+6. Manage your preferences in Settings.
 
-## 🧑‍🤝‍🧑 Collaboration Instructions (for Team)
+## 🚀Live demo
+Click the link below:
+
+https://veritas-henna.vercel.app/
+
+## 🧑‍🤝‍🧑Collaboration Instructions(for Team)
 * Everyone uses the same Supabase project — same VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
 * Each member has their own .env, not committed to GitHub
 * To start working: npm install → npm run dev
 * When updating migrations / schema: commit to /supabase/migrations/, then run npx supabase db push
 * If adding new features (components, UI, pages), create new branches and open Pull Requests
 
-## 🚨 Security & Privacy Notes
-* This is a hackathon‑MVP / proof‑of-concept. For real deployment, consider:
-* Enforcing authenticated user sessions (via Supabase Auth)
-* Proper RLS policies, data encryption, safe data handling
-* Secure file / evidence storage, controlled access, PII protection
-* Legal / privacy compliance when handling sensitive abuse evidence
+## 🌟Acknowledgements
+1. Elizabeth Waithereru - Software Engineer/Full-stack Developer
+2. Jane Muriithi - Software Engineer/Full-stack Developer
+3. Shamim Kombo - Software Engineer/Full-stack Developer
+4. Mitchell Rutto - Software Engineer
+5. Samuel Kamawira - Software Engineer
 
-## 💡 Future Enhancements (Post‑Hackathon)
-* Real OCR + automated text extraction (Tesseract / ML model)
-* PDF / ZIP export of full case bundle (evidence + metadata)
-* Secure user authentication & role-based access (victim, admin, lawyer)
-* Encrypted storage for sensitive files
-* Shareable “case summary link” for reporting bodies
-* Multi‑country support for helplines / resources
+## License
+This project is licensed under the MIT License.
