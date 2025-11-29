@@ -5,6 +5,7 @@ import { PanicButton } from './PanicButton';
 import { CaseList } from './CaseList';
 import { CaseDetail } from './CaseDetail';
 import { SupportBridge } from './SupportBridge';
+import { NewCaseModal } from './NewCaseModal';
 import { LogOut, Plus, Shield, LifeBuoy, FileText } from 'lucide-react';
 
 type View = 'cases' | 'case-detail' | 'support';
@@ -15,6 +16,9 @@ export function Dashboard() {
   const [cases, setCases] = useState<CaseFile[]>([]);
   const [selectedCase, setSelectedCase] = useState<CaseFile | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // 1. New state for the modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     loadCases();
@@ -33,25 +37,40 @@ export function Dashboard() {
     setLoading(false);
   };
 
-  const handleCreateCase = async () => {
-    const title = prompt('Enter a title for your case:');
-    if (!title) return;
+  // 2. Opens the modal instead of the browser prompt
+  const handleCreateCase = () => {
+    setIsModalOpen(true);
+  };
+
+  // 3. Handles the actual database insertion
+  const handleCreateCaseSubmit = async (title: string, description: string, platforms: string[]) => {
+    if (!user) return;
+
+    console.log('Attempting to create case:', { title, platforms, user_id: user.id }); // Debug log
 
     const { data, error } = await supabase
       .from('case_files')
       .insert({
-        user_id: user!.id,
-        title,
-        description: '',
-        status: 'draft'
+        user_id: user.id,
+        title: title,
+        description: description,
+        status: 'draft',
+        social_media_platforms: platforms
       })
       .select()
       .single();
 
-    if (!error && data) {
+    if (error) {
+      console.error('Supabase Error:', error); // Check your browser console!
+      alert(`Error creating case: ${error.message}`);
+      return;
+    }
+
+    if (data) {
       setCases([data, ...cases]);
       setSelectedCase(data);
       setView('case-detail');
+      setIsModalOpen(false);
     }
   };
 
@@ -69,6 +88,13 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
       <PanicButton />
+
+      {/* 4. The Modal Component is rendered here */}
+      <NewCaseModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleCreateCaseSubmit}
+      />
 
       <nav className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

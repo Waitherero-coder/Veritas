@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CaseFile, EvidenceItem, supabase } from '../lib/supabase';
-import { ArrowLeft, Upload, Image, FileText, Mic, Video, AlertTriangle, Clock } from 'lucide-react';
+import { ArrowLeft, Upload, Image, FileText, Mic, Video, AlertTriangle, Clock, Trash2 } from 'lucide-react';
 import { EvidenceUpload } from './EvidenceUpload';
 import { EvidenceTimeline } from './EvidenceTimeline';
 
@@ -13,6 +13,8 @@ export function CaseDetail({ caseFile, onBack }: Props) {
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     loadEvidence();
@@ -35,6 +37,24 @@ export function CaseDetail({ caseFile, onBack }: Props) {
   const handleUploadComplete = () => {
     setShowUpload(false);
     loadEvidence();
+  };
+
+  const handleDeleteCase = async () => {
+    setDeleting(true);
+    const { error } = await supabase
+      .from('case_files')
+      .delete()
+      .eq('id', caseFile.id);
+
+    setDeleting(false);
+
+    if (error) {
+      alert(`Error deleting case: ${error.message}`);
+      return;
+    }
+
+    alert('Case deleted successfully');
+    onBack();
   };
 
   const threatLevelColor = (level: string) => {
@@ -70,19 +90,28 @@ export function CaseDetail({ caseFile, onBack }: Props) {
               <p className="text-slate-600">{caseFile.description}</p>
             )}
           </div>
-          <span
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
-              caseFile.status === 'draft'
-                ? 'bg-slate-100 text-slate-700'
-                : caseFile.status === 'active'
-                ? 'bg-blue-100 text-blue-700'
-                : caseFile.status === 'submitted'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-amber-100 text-amber-700'
-            }`}
-          >
-            {caseFile.status}
-          </span>
+          <div className="flex flex-col items-end gap-3">
+            <span
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                caseFile.status === 'draft'
+                  ? 'bg-slate-100 text-slate-700'
+                  : caseFile.status === 'active'
+                  ? 'bg-blue-100 text-blue-700'
+                  : caseFile.status === 'submitted'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-amber-100 text-amber-700'
+              }`}
+            >
+              {caseFile.status}
+            </span>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+            >
+              <Trash2 size={16} />
+              Delete Case
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-6 text-sm text-slate-500">
@@ -95,6 +124,22 @@ export function CaseDetail({ caseFile, onBack }: Props) {
             <span>{evidence.length} evidence items</span>
           </div>
         </div>
+
+        {caseFile.social_media_platforms && caseFile.social_media_platforms.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <p className="text-xs font-semibold text-slate-600 uppercase mb-2">Platforms Involved</p>
+            <div className="flex flex-wrap gap-2">
+              {caseFile.social_media_platforms.map(platform => (
+                <span
+                  key={platform}
+                  className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium"
+                >
+                  {platform}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -156,6 +201,32 @@ export function CaseDetail({ caseFile, onBack }: Props) {
           onComplete={handleUploadComplete}
           onCancel={() => setShowUpload(false)}
         />
+      )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 rounded-lg">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Case?</h3>
+            <p className="text-slate-600 mb-6">
+              Are you sure you want to delete "{caseFile.title}"? This action cannot be undone and all associated evidence will be deleted.
+            </p>
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteCase}
+                disabled={deleting}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <EvidenceTimeline evidence={evidence} loading={loading} />
