@@ -12,7 +12,20 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export type Profile = {
   id: string;
   email: string;
+  full_name: string;
+  phone: string;
   anonymous_mode: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UserPreferences = {
+  id: string;
+  user_id: string;
+  theme: 'light' | 'dark';
+  email_notifications: boolean;
+  sms_notifications: boolean;
+  notification_frequency: 'immediate' | 'daily' | 'weekly';
   created_at: string;
   updated_at: string;
 };

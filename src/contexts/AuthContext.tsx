@@ -8,6 +8,9 @@ type AuthContextType = {
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateEmail: (newEmail: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,8 +58,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
+  const updateEmail = async (newEmail: string) => {
+    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    if (error) throw error;
+
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ email: newEmail })
+        .eq('id', user.id);
+    }
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+  };
+
+  const deleteAccount = async () => {
+    if (!user) return;
+
+    await supabase.from('profiles').delete().eq('id', user.id);
+
+    const { error } = await supabase.rpc('delete_user');
+    if (error) throw error;
+
+    await signOut();
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, updateEmail, updatePassword, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );
