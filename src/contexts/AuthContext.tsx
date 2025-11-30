@@ -19,68 +19,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Create profile safely AFTER email verification + login
-  const createProfileIfMissing = async (user: User) => {
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .single();
-
-    if (!existingProfile) {
-      const { error } = await supabase.from('profiles').insert({
-        id: user.id,
-        email: user.email,
-        anonymous_mode: false
-      });
-
-      if (error) {
-        console.error("Profile creation error:", error.message);
-      }
-    }
-  };
-
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Get current session
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+
+    // Subscribe to auth changes
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
-
-      if (session?.user) {
-        createProfileIfMissing(session.user);
-      }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          await createProfileIfMissing(session.user);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    // Unsubscribe properly
+    return () => data.subscription.unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: "https://veritas-henna.vercel.app"
-      }
+      options: { emailRedirectTo: window.location.origin } // works both locally and live
     });
 
     if (error) throw error;
+
+    console.log('Signup response:', data);
+
+    // If email verification is ON, session will be null
+    if (!data.session) {
+      console.log('User must verify email before session is created.');
+      return;
+    }
+
+    // Create profile in database
+    if (data.user) {
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        email: data.user.email,
+        anonymous_mode: false
+      });
+
+      if (profileError) throw profileError;
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };
 
@@ -109,10 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const deleteAccount = async () => {
     if (!user) return;
 
-    await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', user.id);
+    await supabase.from('profiles').delete().eq('id', user.id);
 
     const { error } = await supabase.rpc('delete_user');
     if (error) throw error;
@@ -122,16 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        signUp,
-        signIn,
-        signOut,
-        updateEmail,
-        updatePassword,
-        deleteAccount
-      }}
+      value={{ user, loading, signUp, signIn, signOut, updateEmail, updatePassword, deleteAccount }}
     >
       {children}
     </AuthContext.Provider>
@@ -140,10 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-
   return context;
 }
