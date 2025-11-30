@@ -1,87 +1,6 @@
--- In supabase/migrations/ (add to a new migration file, then supabase db push)
--- -- WARNING: This schema is for context only and is not meant to be run.
--- -- Table order and constraints may not be valid for execution.
+-- Create tables in the correct order (parent tables first)
 
--- CREATE TABLE public.case_files (
---   id uuid NOT NULL DEFAULT gen_random_uuid(),
---   user_id uuid NOT NULL,
---   case_name text,
---   created_at timestamp with time zone DEFAULT now(),
---   description text DEFAULT ''::text,
---   social_media_platforms ARRAY DEFAULT '{}'::text[],
---   status text DEFAULT 'draft'::text,
---   title text NOT NULL,
---   CONSTRAINT case_files_pkey PRIMARY KEY (id)
--- );
--- CREATE TABLE public.evidence (
---   id uuid NOT NULL DEFAULT gen_random_uuid(),
---   file_path text NOT NULL,
---   uploaded_by uuid,
---   created_at timestamp with time zone DEFAULT now(),
---   CONSTRAINT evidence_pkey PRIMARY KEY (id)
--- );
--- CREATE TABLE public.evidence_analysis (
---   id uuid NOT NULL DEFAULT gen_random_uuid(),
---   evidence_id uuid,
---   extracted_text text,
---   abuse_labels ARRAY,
---   severity numeric,
---   summary text,
---   participants jsonb,
---   analysis_meta jsonb,
---   created_at timestamp with time zone DEFAULT now(),
---   CONSTRAINT evidence_analysis_pkey PRIMARY KEY (id),
---   CONSTRAINT evidence_analysis_evidence_id_fkey FOREIGN KEY (evidence_id) REFERENCES public.evidence(id)
--- );
--- CREATE TABLE public.evidence_items (
---   id bigint NOT NULL DEFAULT nextval('evidence_items_id_seq'::regclass),
---   case_id uuid,
---   evidence_text text,
---   created_at timestamp without time zone DEFAULT now(),
---   ocr_text text,
---   language text,
---   abuse_score double precision,
---   threat_level text CHECK (threat_level = ANY (ARRAY['none'::text, 'low'::text, 'medium'::text, 'high'::text, 'critical'::text])),
---   abuse_categories ARRAY,
---   emotion_tags ARRAY,
---   incident_timestamp timestamp with time zone,
---   participants jsonb,
---   ai_processed boolean DEFAULT false,
---   ai_raw jsonb,
---   ai_version text,
---   uploaded_at timestamp with time zone DEFAULT now(),
---   extracted_text text,
---   file_type text,
---   file_url text,
---   harm_detected boolean,
---   metadata jsonb,
---   CONSTRAINT evidence_items_pkey PRIMARY KEY (id)
--- );
--- CREATE TABLE public.resources (
---   id uuid NOT NULL DEFAULT uuid_generate_v4(),
---   category text NOT NULL,
---   name text NOT NULL,
---   hotline text,
---   location text,
---   lat double precision,
---   long double precision,
---   url text,
---   CONSTRAINT resources_pkey PRIMARY KEY (id)
--- );
--- CREATE TABLE public.support_resources (
---   id bigint NOT NULL DEFAULT nextval('support_resources_id_seq'::regclass),
---   resource_name text NOT NULL,
---   resource_url text,
---   created_at timestamp without time zone DEFAULT now(),
---   country_code text,
---   region text,
---   channel_type text CHECK (channel_type = ANY (ARRAY['phone'::text, 'chat'::text, 'email'::text, 'website'::text, 'in_person'::text])),
---   link text,
---   notes text,
---   priority_level integer CHECK (priority_level >= 1 AND priority_level <= 5),
---   updated_at timestamp with time zone DEFAULT now(),
---   CONSTRAINT support_resources_pkey PRIMARY KEY (id)
--- );
+-- Resources table
 CREATE TABLE resources (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   category TEXT NOT NULL,  -- e.g., 'police', 'medical', 'counseling'
@@ -93,38 +12,98 @@ CREATE TABLE resources (
   url TEXT        -- e.g., website or chat link
 );
 
-ALTER TABLE case_files
-ADD COLUMN description text DEFAULT '';
+-- Case files table (corresponds to case_mes in the image)
+CREATE TABLE case_files (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  case_name TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  description TEXT DEFAULT ''::text,
+  social_media_platforms TEXT[] DEFAULT '{}'::text[],
+  status TEXT DEFAULT 'draft'::text,
+  title TEXT NOT NULL,
+  CONSTRAINT case_files_pkey PRIMARY KEY (id)
+);
 
-ALTER TABLE case_files
-ADD COLUMN social_media_platforms text[] DEFAULT '{}';
+-- Evidence table
+CREATE TABLE evidence (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  file_path TEXT NOT NULL,
+  uploaded_by UUID,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  CONSTRAINT evidence_pkey PRIMARY KEY (id)
+);
 
+-- Evidence items table
+CREATE TABLE evidence_items (
+  id BIGINT NOT NULL DEFAULT nextval('evidence_items_id_seq'::regclass),
+  case_id UUID,
+  evidence_text TEXT,
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+  ocr_text TEXT,
+  language TEXT,
+  abuse_score DOUBLE PRECISION,
+  threat_level TEXT CHECK (threat_level = ANY (ARRAY['none'::text, 'low'::text, 'medium'::text, 'high'::text, 'critical'::text])),
+  abuse_categories TEXT[],
+  emotion_tags TEXT[],
+  incident_timestamp TIMESTAMP WITH TIME ZONE,
+  participants JSONB,
+  ai_processed BOOLEAN DEFAULT false,
+  ai_raw JSONB,
+  ai_version TEXT,
+  uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  extracted_text TEXT,
+  file_type TEXT,
+  file_url TEXT,
+  harm_detected BOOLEAN,
+  metadata JSONB,
+  CONSTRAINT evidence_items_pkey PRIMARY KEY (id),
+  CONSTRAINT evidence_items_case_id_fkey FOREIGN KEY (case_id) REFERENCES case_files(id)
+);
 
-ALTER TABLE case_files
-ADD COLUMN status text DEFAULT 'draft';
+-- Evidence analysis table
+CREATE TABLE evidence_analysis (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  evidence_id UUID,
+  extracted_text TEXT,
+  abuse_labels TEXT[],
+  severity NUMERIC,
+  summary TEXT,
+  participants JSONB,
+  analysis_meta JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  CONSTRAINT evidence_analysis_pkey PRIMARY KEY (id),
+  CONSTRAINT evidence_analysis_evidence_id_fkey FOREIGN KEY (evidence_id) REFERENCES evidence(id)
+);
 
-ALTER TABLE case_files
-ADD COLUMN title text NOT NULL;
+-- Support resources table
+CREATE TABLE support_resources (
+  id BIGINT NOT NULL DEFAULT nextval('support_resources_id_seq'::regclass),
+  resource_name TEXT NOT NULL,
+  resource_url TEXT,
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+  country_code TEXT,
+  region TEXT,
+  channel_type TEXT CHECK (channel_type = ANY (ARRAY['phone'::text, 'chat'::text, 'email'::text, 'website'::text, 'in_person'::text])),
+  link TEXT,
+  notes TEXT,
+  priority_level INTEGER CHECK (priority_level >= 1 AND priority_level <= 5),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  CONSTRAINT support_resources_pkey PRIMARY KEY (id)
+);
 
-ALTER TABLE public.evidence_items
-ADD COLUMN extracted_text text;
+-- Add foreign key constraints for relationships shown in the image
 
-ALTER TABLE public.evidence_items
-ADD COLUMN file_type text;
+-- Link evidence_items to case_files (already added above)
 
-ALTER TABLE public.evidence_items
-ADD COLUMN file_url text;
+-- Link evidence to evidence_items (if this relationship exists in the schema)
+-- Note: This relationship isn't clear from the provided SQL, but might be needed based on the image
 
-ALTER TABLE public.evidence_items
-ADD COLUMN harm_detected boolean;
+-- Link evidence_analysis to evidence (already added above)
 
-ALTER TABLE public.evidence_items
-ADD COLUMN metadata jsonb;
+-- Link support_resources to evidence_analysis (if this relationship exists)
+-- Note: This relationship isn't clear from the provided SQL, but might be needed based on the image
 
-TRUNCATE TABLE public.evidence_items RESTART IDENTITY CASCADE;
-
-ALTER TABLE public.evidence_items 
-ALTER COLUMN case_id TYPE uuid USING NULL;
-
-ALTER TABLE public.evidence_items 
-ALTER COLUMN evidence_text DROP NOT NULL;
+-- Create sequences if they don't exist
+CREATE SEQUENCE IF NOT EXISTS evidence_items_id_seq;
+CREATE SEQUENCE IF NOT EXISTS support_resources_id_seq;
