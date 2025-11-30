@@ -19,44 +19,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // ✅ Create profile safely AFTER email verification + login
+  const createProfileIfMissing = async (user: User) => {
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (!existingProfile) {
+      const { error } = await supabase.from('profiles').insert({
+        id: user.id,
+        email: user.email,
+        anonymous_mode: false
+      });
+
+      if (error) {
+        console.error("Profile creation error:", error.message);
+      }
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
+
+      if (session?.user) {
+        createProfileIfMissing(session.user);
+      }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      (async () => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
         setUser(session?.user ?? null);
-      })();
-    });
+
+        if (session?.user) {
+          await createProfileIfMissing(session.user);
+        }
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: "http://localhost:5173"
-    }
-  });
-  
-  if (error) throw error;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: "http://localhost:5173"
+      }
+    });
 
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        email: data.user.email!,
-        anonymous_mode: false
-      });
-      if (profileError) throw profileError;
-    }
+    if (error) throw error;
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
     if (error) throw error;
   };
 
@@ -85,7 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const deleteAccount = async () => {
     if (!user) return;
 
-    await supabase.from('profiles').delete().eq('id', user.id);
+    await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', user.id);
 
     const { error } = await supabase.rpc('delete_user');
     if (error) throw error;
@@ -94,7 +121,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, updateEmail, updatePassword, deleteAccount }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signUp,
+        signIn,
+        signOut,
+        updateEmail,
+        updatePassword,
+        deleteAccount
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -102,8 +140,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
+
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
+
   return context;
 }
