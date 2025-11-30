@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { CaseFile, EvidenceItem, supabase } from '../lib/supabase';
-import { ArrowLeft, Upload, Image, FileText, Mic, Video, AlertTriangle, Clock, Trash2 } from 'lucide-react';
+import { ArrowLeft, Upload, Image, FileText, Mic, Video, AlertTriangle, Clock, Trash2, FileText as FileIcon } from 'lucide-react';
 import { EvidenceUpload } from './EvidenceUpload';
 import { EvidenceTimeline } from './EvidenceTimeline';
+import jsPDF from 'jspdf';
 
 type Props = {
   caseFile: CaseFile;
@@ -57,6 +58,27 @@ export function CaseDetail({ caseFile, onBack }: Props) {
     onBack();
   };
 
+  // --- PDF Export ---
+  const exportPDF = () => {
+    if (evidence.length === 0) {
+      alert('No evidence to export.');
+      return;
+    }
+
+    const doc = new jsPDF();
+    doc.text('Veritas Case File', 10, 10);
+
+    evidence.forEach((item, idx) => {
+      const y = 20 + idx * 10;
+      const text = item.extracted_text || '(No text)';
+      doc.text(`${item.uploaded_at}: ${text}`, 10, y);
+    });
+
+    doc.text('Next Steps: Contact GBV Hotline 1195', 10, 20 + evidence.length * 10 + 10);
+    doc.save(`case-${caseFile.id}.pdf`);
+  };
+  // --- End PDF Export ---
+
   const threatLevelColor = (level: string) => {
     switch (level) {
       case 'critical':
@@ -74,21 +96,31 @@ export function CaseDetail({ caseFile, onBack }: Props) {
 
   return (
     <div>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors"
-      >
-        <ArrowLeft size={20} />
-        <span className="font-medium">Back to Cases</span>
-      </button>
+      <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
+        >
+          <ArrowLeft size={20} />
+          <span className="font-medium">Back to Cases</span>
+        </button>
 
+        {/* PDF Export Button */}
+        <button
+          onClick={exportPDF}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+        >
+          <FileIcon size={16} />
+          Export PDF
+        </button>
+      </div>
+
+      {/* Case Info */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 mb-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">{caseFile.title}</h1>
-            {caseFile.description && (
-              <p className="text-slate-600">{caseFile.description}</p>
-            )}
+            {caseFile.description && <p className="text-slate-600">{caseFile.description}</p>}
           </div>
           <div className="flex flex-col items-end gap-3">
             <span
@@ -129,7 +161,7 @@ export function CaseDetail({ caseFile, onBack }: Props) {
           <div className="mt-4 pt-4 border-t border-slate-200">
             <p className="text-xs font-semibold text-slate-600 uppercase mb-2">Platforms Involved</p>
             <div className="flex flex-wrap gap-2">
-              {caseFile.social_media_platforms.map(platform => (
+              {caseFile.social_media_platforms.map((platform) => (
                 <span
                   key={platform}
                   className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium"
@@ -142,6 +174,7 @@ export function CaseDetail({ caseFile, onBack }: Props) {
         )}
       </div>
 
+      {/* Evidence Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center gap-3 mb-2">
@@ -184,6 +217,7 @@ export function CaseDetail({ caseFile, onBack }: Props) {
         </div>
       </div>
 
+      {/* Upload Evidence */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-slate-900">Evidence Timeline</h2>
         <button

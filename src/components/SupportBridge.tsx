@@ -6,6 +6,7 @@ export function SupportBridge() {
   const [resources, setResources] = useState<SupportResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [userLocation, setUserLocation] = useState<{ lat: number; long: number } | null>(null);
 
   useEffect(() => {
     loadResources();
@@ -24,6 +25,17 @@ export function SupportBridge() {
     setLoading(false);
   };
 
+  const getUserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ lat: pos.coords.latitude, long: pos.coords.longitude }),
+        () => alert('Location access denied; showing all resources.')
+      );
+    } else {
+      alert('Your browser does not support location.');
+    }
+  };
+
   const categories = [
     { value: 'all', label: 'All Resources', icon: Shield },
     { value: 'emergency', label: 'Emergency', icon: AlertCircle },
@@ -33,10 +45,31 @@ export function SupportBridge() {
     { value: 'legal', label: 'Legal Aid', icon: Scale },
   ];
 
-  const filteredResources =
+  const distance = (loc1: { lat: number; long: number }, loc2: { lat?: number; long?: number }) => {
+    if (!loc2.lat || !loc2.long) return Infinity;
+    const R = 6371; // Earth radius in km
+    const dLat = ((loc2.lat - loc1.lat) * Math.PI) / 180;
+    const dLon = ((loc2.long - loc1.long) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((loc1.lat * Math.PI) / 180) *
+        Math.cos((loc2.lat * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  // Filter by category first
+  let filteredResources =
     selectedCategory === 'all'
       ? resources
       : resources.filter((r) => r.category === selectedCategory);
+
+  // Sort by distance if user location is available
+  if (userLocation) {
+    filteredResources = filteredResources
+      .slice() // avoid mutating original array
+      .sort((a, b) => distance(userLocation, a) - distance(userLocation, b));
+  }
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -79,6 +112,12 @@ export function SupportBridge() {
         <p className="text-emerald-50 text-lg mb-6">
           Connect with verified help services instantly. You're not alone in this journey.
         </p>
+        <button
+          onClick={getUserLocation}
+          className="mb-4 bg-white text-emerald-600 px-4 py-2 rounded-lg font-medium hover:bg-emerald-50 transition-colors"
+        >
+          Show Nearest Resources
+        </button>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white bg-opacity-20 backdrop-blur rounded-lg p-4">
             <p className="text-3xl font-bold mb-1">{resources.length}</p>
