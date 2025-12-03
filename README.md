@@ -88,7 +88,7 @@ Then open http://localhost:5173 (or as indicated) in your browser.
 ## 🚀Live demo
 Click the link below:
 
-https://veritas-henna.vercel.app/
+[https://veritas-henna.vercel.app/](https://veritas-git-stable-working-elizabeths-projects-04752da5.vercel.app/)
 
 ## 🧑‍🤝‍🧑Collaboration Instructions(for Team)
 * Everyone uses the same Supabase project — same VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
